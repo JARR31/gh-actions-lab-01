@@ -1,0 +1,26 @@
+{
+  "name": "@pulsecart/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test:unit": "vitest run --coverage --config vitest.unit.config.ts",
+    "test:integration": "vitest run --coverage --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@pulsecart/domain": "workspace:*",
+    "fastify": "^5.1.0",
+    "pg": "^8.13.1",
+    "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/pg": "^8.11.10"
+  }
+}

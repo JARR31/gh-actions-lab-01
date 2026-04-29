@@ -1,0 +1,14 @@
+{
+  "environment": "staging",
+  "application": "pulsecart",
+  "version": "0.1.0",
+  "imageTags": {
+    "api": "pulsecart-api:staging",
+    "web": "pulsecart-web:staging"
+  },
+  "requiredChecks": ["lint", "unit-tests", "integration-tests", "smoke"],
+  "promotionPolicy": {
+    "requiresApproval": false,
+    "rollbackWindowMinutes": 30
+  }
+}

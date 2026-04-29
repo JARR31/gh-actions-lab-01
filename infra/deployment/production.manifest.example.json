@@ -1,0 +1,21 @@
+{
+  "environment": "production",
+  "application": "pulsecart",
+  "version": "0.1.0",
+  "imageTags": {
+    "api": "pulsecart-api:production",
+    "web": "pulsecart-web:production"
+  },
+  "requiredChecks": [
+    "lint",
+    "unit-tests",
+    "integration-tests",
+    "e2e-tests",
+    "security-scan",
+    "smoke"
+  ],
+  "promotionPolicy": {
+    "requiresApproval": true,
+    "rollbackWindowMinutes": 60
+  }
+}

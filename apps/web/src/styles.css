@@ -1,0 +1,326 @@
+:root {
+  color: #1f2933;
+  background: #f5f7fa;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #111827;
+  color: #f9fafb;
+  padding: 24px 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 32px;
+}
+
+.brand svg {
+  color: #38bdf8;
+}
+
+.nav-tabs {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-tabs button,
+.icon-button,
+.order-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.nav-tabs button {
+  justify-content: flex-start;
+  color: #d1d5db;
+  background: transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.nav-tabs button:hover,
+.nav-tabs button.active {
+  background: #243245;
+  color: #ffffff;
+}
+
+svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.content {
+  padding: 28px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #64748b;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: 2rem;
+}
+
+.icon-button,
+.order-form button {
+  background: #0f766e;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.icon-button:hover,
+.order-form button:hover {
+  background: #115e59;
+}
+
+.order-form button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.alert,
+.loading {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+
+.alert {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.loading {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.dashboard-grid,
+.deployment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.status-card,
+.order-form,
+.order-row {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+.status-card {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+}
+
+.card-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #0369a1;
+  background: #e0f2fe;
+  border-radius: 8px;
+}
+
+.status-card p,
+.order-row p,
+.form-detail,
+.form-message {
+  color: #64748b;
+}
+
+.status-card p,
+.status-card h2,
+.order-row h3 {
+  margin-bottom: 4px;
+}
+
+.status-card h2 {
+  font-size: 1.25rem;
+}
+
+.status-card span {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.orders-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.order-form {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.order-form h2 {
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.order-form label {
+  font-weight: 700;
+}
+
+.order-form input {
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+}
+
+.order-list {
+  display: grid;
+  gap: 10px;
+}
+
+.order-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.status-fulfilled {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-cancelled {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 16px;
+  }
+
+  .brand {
+    margin-bottom: 14px;
+  }
+
+  .nav-tabs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .nav-tabs button {
+    justify-content: center;
+  }
+
+  .content {
+    padding: 20px 16px;
+  }
+
+  .topbar,
+  .orders-layout {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .dashboard-grid,
+  .deployment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .nav-tabs button {
+    font-size: 0.86rem;
+    padding: 10px 6px;
+  }
+
+  .order-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
