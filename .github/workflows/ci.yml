@@ -1,7 +1,5 @@
 name: Continuous Integration
-
 run-name: Run ${{ github.workflow }} on ${{ github.ref_name }} - ${{ github.action }} by ${{ github.actor }}
-
 on:
     workflow_dispatch:
     push:
@@ -23,19 +21,15 @@ on:
             - apps/web/**
             - packages/domain/**
             - .github/workflows/ci.yml
-
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
-
 env:
     WORKING_DIRECTORY: ${{ github.workspace }}
-
 jobs:
     detect-changes:
         runs-on: ubuntu-24.04
         timeout-minutes: 2
-        # permissions: 
         outputs:
             api: "${{ steps.detect-changes.outputs.api }}"
             web: "${{ steps.detect-changes.outputs.web }}"

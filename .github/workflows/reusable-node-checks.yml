@@ -35,5 +35,5 @@ jobs:
 
             - name: "${{ inputs.step-title }}"
               shell: bash
-              folder: "${{ inputs.folder }}"
+              working-directory: "${{ inputs.folder }}"
               run: pnpm "${{ inputs.command }}"
