@@ -15,7 +15,7 @@ on:
                 required: true
                 type: string
 jobs:
-    test:
+    node-checks:
         runs-on: ubuntu-24.04
         timeout-minutes: 5
         steps:
@@ -24,14 +24,14 @@ jobs:
               timeout-minutes: 1
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
               with:
-                path: "${{ inputs.folder }}"
+                path: "${{ github.workspace }}"
               
             - name: Setup Node and Dependencies
               id: setup-node-deps
               timeout-minutes: 1
               uses: ./.github/actions/setup-node
               with:
-                folder: "${{ inputs.folder }}"
+                folder: "${{ github.workspace }}"
 
             - name: "${{ inputs.step-title }}"
               shell: bash
