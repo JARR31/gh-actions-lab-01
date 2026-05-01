@@ -150,6 +150,7 @@ jobs:
                 DATABASE_URL: "postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}"
                 REDIS_URL: "redis://localhost:6379"
               run: pnpm test:integration
+
             - name: Upload Coverage Reports
               id: upload-cov-artifacts
               timeout-minutes: 1
@@ -158,8 +159,8 @@ jobs:
                 name: "api-coverage-reports"
                 retention-days: 1
                 path: |
-                  "${{ github.workspace }}/reports/junit-*.xml"
-                  "${{ github.workspace }}/reports/coverage/**"
+                  "reports/junit-*.xml"
+                  "reports/coverage/**"
 
     web-linters:
         needs: detect-changes
