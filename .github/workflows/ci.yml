@@ -92,7 +92,10 @@ jobs:
               with:
                 path: "${{ env.WORKING_DIRECTORY }}"
               
-            - uses: ./.github/actions/setup-node
+            - name: Setup Node and Dependencies
+              id: setup-node-deps
+              timeout-minutes: 1
+              uses: ./.github/actions/setup-node
               with:
                 working-directory: "${{ env.WORKING_DIRECTORY }}"
 
