@@ -109,6 +109,11 @@ jobs:
                 image: redis@sha256:832d7785830f3f4b559300e6191fc914b15642c1935252338825cf4332200148
                 ports:
                     - "6379:6379"
+                options: >-
+                    --health-cmd "redis-cli ping || exit 1"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 5
             postgres:
                 image: postgres@sha256:bbb8851608e3ff4901156bf6a4bf90735a9d44ae014c03811bfdb2f9c354b18b
                 ports:
@@ -117,6 +122,11 @@ jobs:
                     POSTGRES_USER: "${{ env.POSTGRES_USER }}"
                     POSTGRES_PASSWORD: "${{ env.POSTGRES_PASSWORD }}"
                     POSTGRES_DB: "${{ env.POSTGRES_DB }}"
+                options: >-
+                    --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB || exit 1"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 5
         steps:
             - name: Checkout
               id: git-checkout
