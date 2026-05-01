@@ -46,4 +46,4 @@ jobs:
             - name: "${{ inputs.step-title }}"
               shell: bash
               working-directory: "${{ github.workspace }}/${{ inputs.folder }}"
-              run: pnpm "${{ inputs.command }}"
+              run: ${{ inputs.command }}
