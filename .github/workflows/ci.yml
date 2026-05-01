@@ -25,7 +25,7 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 env:
-    WORKING_DIRECTORY: "$GITHUB_WORKSPACE"
+    WORKING_DIRECTORY: ${{ github.workspace }}
 jobs:
     detect-changes:
         runs-on: ubuntu-24.04
@@ -35,7 +35,7 @@ jobs:
             api: "${{ steps.detect-changes.outputs.api }}"
             web: "${{ steps.detect-changes.outputs.web }}"
             domain: "${{ steps.detect-changes.outputs.domain }}"
-            any: "${{ steps.detect-changes.outputs.any }}"
+            any: "${{ steps.set-changes-output.outputs.any }}"
         steps:
             - name: Checkout
               id: git-checkout
@@ -52,10 +52,21 @@ jobs:
                 filters: |
                   api:
                     - 'apps/api/**'
+                    - 'packages/domain/**'
+                    - 'package.json'
+                    - 'pnpm-lock.yaml'
+                    - '.github/workflows/ci.yml'
                   web:
                     - 'apps/web/**'
+                    - 'packages/domain/**'
+                    - 'package.json'
+                    - 'pnpm-lock.yaml'
+                    - '.github/workflows/ci.yml'
                   domain:
                     - 'packages/domain/**'
+                    - 'package.json'
+                    - 'pnpm-lock.yaml'
+                    - '.github/workflows/ci.yml'
             - name: Set Any Changes Output
               id: set-changes-output
               timeout-minutes: 1
@@ -82,7 +93,13 @@ jobs:
               timeout-minutes: 1
               uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
               with:
-                node-version: 26
+                node-version: 24
+            - name: Install PNPM
+              id: install-pnpm
+              timeout-minutes: 1
+              shell: bash
+              working-directory: "${{ env.WORKING_DIRECTORY }}"
+              run: corepack enable pnpm@8
             - name: NPM Dependencies Caching
               id: npm-cache
               uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
