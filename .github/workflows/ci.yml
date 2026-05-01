@@ -83,7 +83,7 @@ jobs:
         if: needs.detect-changes.outputs.any == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "${{ github.workspace }}/apps/api"
+            folder: "apps/api"
             step-title: "Run API Linters"
             command: "lint"
 
@@ -92,7 +92,7 @@ jobs:
         if: needs.detect-changes.outputs.web == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "${{ github.workspace }}/apps/web"
+            folder: "apps/web"
             step-title: "Run Web Linters"
             command: "lint"
 
@@ -101,6 +101,6 @@ jobs:
         if: needs.detect-changes.outputs.domain == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "${{ github.workflow }}/packages/domain"
+            folder: "packages/domain"
             step-title: "Run Domain linters"
             command: "lint"
