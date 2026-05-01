@@ -1,0 +1,39 @@
+name: Reusable Node Checks
+on:
+    workflow_call:
+        inputs:
+            folder:
+                description: The path of the folder to run the checks in, relative to the repository root
+                required: true
+                type: string
+            step-title:
+                description: Title for the step that actually runs the validation
+                required: true
+                type: string
+            command:
+                description: The PNPM options to execute.
+                required: true
+                type: string
+jobs:
+    test:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        steps:
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                path: "${{ inputs.folder }}"
+              
+            - name: Setup Node and Dependencies
+              id: setup-node-deps
+              timeout-minutes: 1
+              uses: ./.github/actions/setup-node
+              with:
+                folder: "${{ inputs.folder }}"
+
+            - name: "${{ inputs.step-title }}"
+              shell: bash
+              folder: "${{ inputs.folder }}"
+              run: pnpm "${{ inputs.command }}"

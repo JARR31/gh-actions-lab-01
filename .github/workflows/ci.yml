@@ -1,5 +1,7 @@
 name: Continuous Integration
+
 run-name: Run ${{ github.workflow }} on ${{ github.ref_name }} - ${{ github.action }} by ${{ github.actor }}
+
 on:
     workflow_dispatch:
     push:
@@ -21,11 +23,14 @@ on:
             - apps/web/**
             - packages/domain/**
             - .github/workflows/ci.yml
+
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
+
 env:
     WORKING_DIRECTORY: ${{ github.workspace }}
+
 jobs:
     detect-changes:
         runs-on: ubuntu-24.04
@@ -78,44 +83,30 @@ jobs:
                 else
                     echo "any=false" >> "$GITHUB_OUTPUT"
                 fi
-    
-    lint:
+
+    api-linters:
         needs: detect-changes
         if: needs.detect-changes.outputs.any == 'true'
-        runs-on: ubuntu-24.04
-        timeout-minutes: 5
-        steps:
-            - name: Checkout
-              id: git-checkout
-              timeout-minutes: 1
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-              with:
-                path: "${{ env.WORKING_DIRECTORY }}"
-              
-            - name: Setup Node and Dependencies
-              id: setup-node-deps
-              timeout-minutes: 1
-              uses: ./.github/actions/setup-node
-              with:
-                working-directory: "${{ env.WORKING_DIRECTORY }}"
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "${{ github.workspace }}/apps/api"
+            step-title: "Run API Linters"
+            command: "lint"
 
-            - name: API | Run Linters
-              id: api-run-linters
-              if: needs.detect-changes.outputs.api == 'true'
-              shell: bash
-              working-directory: "${{ env.WORKING_DIRECTORY }}/apps/api"
-              run: pnpm lint
+    web-linters:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.web == 'true'
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "${{ github.workspace }}/apps/web"
+            step-title: "Run Web Linters"
+            command: "lint"
 
-            - name: WEB | Run Linters
-              id: web-run-linters
-              if: needs.detect-changes.outputs.web == 'true'
-              shell: bash
-              working-directory: "${{ env.WORKING_DIRECTORY }}/apps/web"
-              run: pnpm lint
-
-            - name: DOMAIN | Run Linters
-              id: domain-run-linters
-              if: needs.detect-changes.outputs.domain == 'true'
-              shell: bash
-              working-directory: "${{ env.WORKING_DIRECTORY }}/packages/domain"
-              run: pnpm lint
+    domain-linters:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.domain == 'true'
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "${{ github.workflow }}/packages/domain"
+            step-title: "Run Domain linters"
+            command: "lint"
