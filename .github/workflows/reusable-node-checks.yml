@@ -35,5 +35,5 @@ jobs:
 
             - name: "${{ inputs.step-title }}"
               shell: bash
-              working-directory: "${{ github.workflow }}/${{ inputs.folder }}"
+              working-directory: "${{ github.workspace }}/${{ inputs.folder }}"
               run: pnpm "${{ inputs.command }}"
