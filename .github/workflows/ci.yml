@@ -80,12 +80,21 @@ jobs:
 
     api-linters:
         needs: detect-changes
-        if: needs.detect-changes.outputs.any == 'true'
+        if: needs.detect-changes.outputs.api == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
             folder: "apps/api"
             step-title: "Run API Linters"
             command: "lint"
+
+    api-unit-tests:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.api == 'true'
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "apps/api"
+            step-title: "Run API Unit Tests"
+            command: "test:unit"
 
     web-linters:
         needs: detect-changes
@@ -96,6 +105,15 @@ jobs:
             step-title: "Run Web Linters"
             command: "lint"
 
+    web-unit-tests:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.web == 'true'
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "apps/web"
+            step-title: "Run Web Unit Tests"
+            command: "test:unit"
+
     domain-linters:
         needs: detect-changes
         if: needs.detect-changes.outputs.domain == 'true'
@@ -104,3 +122,12 @@ jobs:
             folder: "packages/domain"
             step-title: "Run Domain linters"
             command: "lint"
+
+    domain-unit-tests:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.domain == 'true'
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "packages/domain"
+            step-title: "Run Domain Unit Tests"
+            command: "test:unit"
