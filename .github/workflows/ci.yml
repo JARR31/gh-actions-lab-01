@@ -159,6 +159,15 @@ jobs:
             step-title: "Run Web Unit Tests"
             command: "test:unit"
 
+    web-e2e-tests:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.web == 'true'
+        uses: ./.github/workflows/reusable-node-checks.yml
+        with:
+            folder: "apps/web"
+            step-title: "Run Web E2E Tests"
+            command: "test:e2e"
+
     domain-linters:
         needs: detect-changes
         if: needs.detect-changes.outputs.domain == 'true'
