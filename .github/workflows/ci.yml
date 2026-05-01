@@ -110,7 +110,7 @@ jobs:
                 ports:
                     - "6379:6379"
                 options: >-
-                    --health-cmd "redis-clisadsa ping || exit 1"
+                    --health-cmd "redis-cli ping || exit 1"
                     --health-interval 5s
                     --health-timeout 5s
                     --health-retries 5
@@ -150,6 +150,16 @@ jobs:
                 DATABASE_URL: "postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}"
                 REDIS_URL: "redis://localhost:6379"
               run: pnpm test:integration
+            - name: Upload Coverage Reports
+              id: upload-cov-artifacts
+              timeout-minutes: 1
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                name: "api-coverage-reports"
+                retention-days: 1
+                path: |
+                  "${{ github.workspace }}/reports/junit-*.xml"
+                  "${{ github.workspace }}/reports/coverage/**"
 
     web-linters:
         needs: detect-changes
