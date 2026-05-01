@@ -99,7 +99,10 @@ jobs:
               timeout-minutes: 1
               shell: bash
               working-directory: "${{ env.WORKING_DIRECTORY }}"
-              run: corepack enable pnpm@8
+              run: |
+                npm install --global corepack@latest
+                corepack enable pnpm
+                corepack use pnpm@latest-10
             - name: NPM Dependencies Caching
               id: npm-cache
               uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
