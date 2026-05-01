@@ -37,12 +37,9 @@ jobs:
             domain: "${{ steps.detect-changes.outputs.domain }}"
             any: "${{ steps.set-changes-output.outputs.any }}"
         steps:
-            - name: Checkout
-              id: git-checkout
-              timeout-minutes: 1
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+            - uses: ./.github/actions/checkout
               with:
-                path: "${{ env.WORKING_DIRECTORY }}"
+                working-directory: "${{ env.WORKING_DIRECTORY }}"
 
             - name: Detect Changes
               id: detect-changes
@@ -67,6 +64,7 @@ jobs:
                     - 'package.json'
                     - 'pnpm-lock.yaml'
                     - '.github/workflows/ci.yml'
+
             - name: Set Any Changes Output
               id: set-changes-output
               timeout-minutes: 1
@@ -84,48 +82,28 @@ jobs:
         runs-on: ubuntu-24.04
         timeout-minutes: 5
         steps:
-            - name: Checkout
-              id: git-checkout
-              timeout-minutes: 1
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-            - name: Install NodeJS
-              id: install-node
-              timeout-minutes: 1
-              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+            - uses: ./.github/actions/checkout
               with:
-                node-version: 24
-            - name: Install PNPM
-              id: install-pnpm
-              timeout-minutes: 1
-              shell: bash
-              working-directory: "${{ env.WORKING_DIRECTORY }}"
-              run: |
-                npm install --global corepack@latest
-                corepack enable pnpm
-                corepack use pnpm@latest-10
-            - name: NPM Dependencies Caching
-              id: npm-cache
-              uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+                working-directory: "${{ env.WORKING_DIRECTORY }}"
+                
+            - uses: ./.github/actions/setup-node
               with:
-                path: "${{ env.WORKING_DIRECTORY }}/node_modules"
-                key: "${{ runner.os }}-node-modules-${{ hashFiles(format('{0}/pnpm-lock.yaml', env.WORKING_DIRECTORY)) }}"
-            - name: Install NPM Dependencies
-              id: install-npm-deps
-              shell: bash
-              working-directory: "${{ env.WORKING_DIRECTORY }}"
-              run: pnpm install
+                working-directory: "${{ env.WORKING_DIRECTORY }}"
+
             - name: API | Run Linters
               id: api-run-linters
               if: needs.detect-changes.outputs.api == 'true'
               shell: bash
               working-directory: "${{ env.WORKING_DIRECTORY }}/apps/api"
               run: pnpm lint
+
             - name: WEB | Run Linters
               id: web-run-linters
               if: needs.detect-changes.outputs.web == 'true'
               shell: bash
               working-directory: "${{ env.WORKING_DIRECTORY }}/apps/web"
               run: pnpm lint
+              
             - name: DOMAIN | Run Linters
               id: domain-run-linters
               if: needs.detect-changes.outputs.domain == 'true'

@@ -1,0 +1,37 @@
+name: Setup NodeJS
+description: Ensure NodeJS@v26 is installed
+inputs:
+  working-directory:
+    description: The directory in which the node_modules should be created
+    default: ${{ github.workspace }}
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Install NodeJS
+      id: install-node
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+      with:
+        node-version: 24
+
+    - name: Install PNPM
+      id: install-pnpm
+      shell: bash
+      working-directory: "${{ inputs.working-directory }}"
+      run: |
+        npm install --global corepack@latest
+        corepack enable pnpm
+        corepack use pnpm@latest-10
+
+    - name: NPM Dependencies Caching
+      id: npm-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      with:
+        path: "${{ inputs.working-directory }}/node_modules"
+        key: "${{ runner.os }}-node-modules-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.working-directory)) }}"
+
+    - name: Install NPM Dependencies
+      id: install-npm-deps
+      shell: bash
+      working-directory: "${{ inputs.working-directory }}"
+      run: pnpm install

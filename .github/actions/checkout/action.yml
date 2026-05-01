@@ -1,0 +1,15 @@
+name: GIT Checkout
+description: Checkout GitHub Repo
+inputs:
+  working-directory:
+    description: The directory in which to checkout
+    default: ${{ github.workspace }}
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      id: git-checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      with:
+        path: "${{ inputs.working-directory }}"
