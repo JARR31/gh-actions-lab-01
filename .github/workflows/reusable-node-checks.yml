@@ -14,6 +14,16 @@ on:
                 description: The PNPM options to execute.
                 required: true
                 type: string
+            enable-postgres:
+                description: Whether to start a Postgres service container or not.
+                required: false
+                default: false
+                type: boolean
+            enable-redis:
+                description: Whether to start a Redis service container or not.
+                required: false
+                default: false
+                type: boolean
 jobs:
     node-checks:
         runs-on: ubuntu-24.04

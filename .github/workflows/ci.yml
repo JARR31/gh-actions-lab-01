@@ -26,6 +26,9 @@ concurrency:
     cancel-in-progress: true
 env:
     WORKING_DIRECTORY: ${{ github.workspace }}
+    POSTGRES_USER: "jarr"
+    POSTGRES_DB: "pulsecart"
+    POSTGRES_PASSWORD: "mypassword2026"
 jobs:
     detect-changes:
         runs-on: ubuntu-24.04
@@ -95,6 +98,48 @@ jobs:
             folder: "apps/api"
             step-title: "Run API Unit Tests"
             command: "test:unit"
+
+    api-integration-tests:
+        needs: detect-changes
+        if: needs.detect-changes.outputs.api == 'true'
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        services:
+            redis:
+                image: redis@sha256:832d7785830f3f4b559300e6191fc914b15642c1935252338825cf4332200148
+                ports:
+                    - "6379:6379"
+            postgres:
+                image: postgres@sha256:bbb8851608e3ff4901156bf6a4bf90735a9d44ae014c03811bfdb2f9c354b18b
+                ports:
+                    - "5432:5432"
+                env:
+                    POSTGRES_USER: "${{ env.POSTGRES_USER }}"
+                    POSTGRES_PASSWORD: "${{ env.POSTGRES_PASSWORD }}"
+                    POSTGRES_DB: "${{ env.POSTGRES_DB }}"
+        steps:
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              with:
+                path: "${{ github.workspace }}"
+              
+            - name: Setup Node and Dependencies
+              id: setup-node-deps
+              timeout-minutes: 1
+              uses: ./.github/actions/setup-node
+              with:
+                folder: "${{ github.workspace }}"
+
+            - name: Run API Integration Tests
+              shell: bash
+              working-directory: "${{ github.workspace }}/apps/api"
+              env:
+                STORAGE_DRIVER: "postgres"
+                DATABASE_URL: "postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}"
+                REDIS_URL: "redis://localhost:6379"
+              run: pnpm test:integration
 
     web-linters:
         needs: detect-changes
