@@ -30,4 +30,5 @@ COPY --from=build /app/packages/domain/package.json ./packages/domain/package.js
 COPY --from=build /app/packages/domain/dist ./packages/domain/dist
 
 EXPOSE 3000
+
 CMD ["node", "apps/api/dist/index.js"]
