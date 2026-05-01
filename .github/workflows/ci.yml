@@ -37,9 +37,12 @@ jobs:
             domain: "${{ steps.detect-changes.outputs.domain }}"
             any: "${{ steps.set-changes-output.outputs.any }}"
         steps:
-            - uses: ./.github/actions/checkout
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
               with:
-                working-directory: "${{ env.WORKING_DIRECTORY }}"
+                path: "${{ env.WORKING_DIRECTORY }}"
 
             - name: Detect Changes
               id: detect-changes
@@ -82,10 +85,13 @@ jobs:
         runs-on: ubuntu-24.04
         timeout-minutes: 5
         steps:
-            - uses: ./.github/actions/checkout
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
               with:
-                working-directory: "${{ env.WORKING_DIRECTORY }}"
-                
+                path: "${{ env.WORKING_DIRECTORY }}"
+              
             - uses: ./.github/actions/setup-node
               with:
                 working-directory: "${{ env.WORKING_DIRECTORY }}"
@@ -103,7 +109,7 @@ jobs:
               shell: bash
               working-directory: "${{ env.WORKING_DIRECTORY }}/apps/web"
               run: pnpm lint
-              
+
             - name: DOMAIN | Run Linters
               id: domain-run-linters
               if: needs.detect-changes.outputs.domain == 'true'
