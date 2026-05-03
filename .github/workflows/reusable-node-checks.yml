@@ -25,8 +25,8 @@ on:
             upload-artifacts:
                 description: Whether to upload coverage artifacts or not.
                 required: false
-                default: true
-                type: boolean
+                default: 'true'
+                type: string
         outputs:
             coverage-percent:
                 description: The coverage report percentage.
