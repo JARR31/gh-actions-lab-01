@@ -27,7 +27,7 @@ runs:
   steps:
     - name: Install PNPM
       id: install-pnpm
-      if: inputs.package-manger == 'pnpm'
+      if: inputs.package-manager == 'pnpm'
       uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
       
     - name: Install NodeJS
@@ -35,6 +35,7 @@ runs:
       uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version: ${{ inputs.node-version }}
+        cache: ${{ inputs.package-manager }}
 
     - name: NPM Dependencies Caching
       id: npm-cache
