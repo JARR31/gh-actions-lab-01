@@ -1,0 +1,99 @@
+name: Reusable Integration Node Checks
+
+on:
+    workflow_call:
+        inputs:
+            command:
+                description: The specific command to execute.
+                required: true
+                type: string
+            postgres-database-name:
+                description: The name of the PSQL Database.
+                default: pulsecart_db
+                required: false
+                type: string
+            postgres-user:
+                description: The name to authenticate in PSQL.
+                default: pulsecart_user
+                required: false
+                type: string
+            postgres-user-password:
+                description: The password for the provided "postgres-user".
+                default: pulsecart_user_password
+                required: false
+                type: string
+            node-version:
+                description: The NodeJS version to use for the checks.
+                required: false
+                default: "24"
+                type: string
+            workspace:
+                description: The workspace for this run.
+                required: false
+                default: ""
+                type: string
+        outputs:
+            build-version:
+                description: The build version from this run.
+                value: ${{ jobs.node-checks.outputs.build-version }}
+
+defaults:
+    run:
+        shell: bash
+
+jobs:
+    node-checks:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        outputs:
+            build-version: ${{ steps.output-build-version.outputs.build-version }}
+        services:
+            redis:
+                image: redis@sha256:832d7785830f3f4b559300e6191fc914b15642c1935252338825cf4332200148
+                ports:
+                    - "6379:6379"
+                options: >-
+                    --health-cmd "redis-cli ping || exit 1"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 5
+            postgres:
+                image: postgres@sha256:bbb8851608e3ff4901156bf6a4bf90735a9d44ae014c03811bfdb2f9c354b18b
+                ports:
+                    - "5432:5432"
+                env:
+                    POSTGRES_USER: "${{ inputs.postgres-user }}"
+                    POSTGRES_PASSWORD: "${{ inputs.postgres-user-password }}"
+                    POSTGRES_DB: "${{ inputs.postgres-database-name }}"
+                options: >-
+                    --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB || exit 1"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 5
+        steps:
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+              
+            - name: Setup Node and Dependencies
+              id: setup-node-deps
+              timeout-minutes: 1
+              uses: ./.github/actions/setup-pulsecart
+              with:
+                node-version: ${{ inputs.node-version }}
+
+            - name: Run Integration Node Checks
+              id: run-integration-node-cheks
+              timeout-minutes: 1
+              working-directory: ${{ github.workspace }}/${{ inputs.workspace }}
+              env:
+                STORAGE_DRIVER: "postgres"
+                DATABASE_URL: "postgres://${{ inputs.postgres-user }}:${{ inputs.postgres-user-password }}@localhost:5432/${{ inputs.postgres-database-name }}"
+                REDIS_URL: "redis://localhost:6379"
+              run: ${{ inputs.command }}
+              
+            - name: Output Build Version
+              id: output-build-version
+              timeout-minutes: 1
+              run: echo "build-version=${GITHUB_SHA::12}" >> $GITHUB_OUTPUT

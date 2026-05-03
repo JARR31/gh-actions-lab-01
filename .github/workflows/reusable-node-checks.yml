@@ -1,49 +1,129 @@
 name: Reusable Node Checks
+
 on:
     workflow_call:
         inputs:
-            folder:
-                description: The path of the folder to run the checks in, relative to the repository root
-                required: true
-                type: string
-            step-title:
-                description: Title for the step that actually runs the validation
-                required: true
-                type: string
             command:
-                description: The PNPM options to execute.
+                description: The specific command to execute.
                 required: true
                 type: string
-            enable-postgres:
-                description: Whether to start a Postgres service container or not.
+            node-version:
+                description: The NodeJS version to use for the checks.
                 required: false
-                default: false
-                type: boolean
-            enable-redis:
-                description: Whether to start a Redis service container or not.
+                default: "24"
+                type: string
+            workspace:
+                description: The workspace for this run.
                 required: false
-                default: false
+                default: ""
+                type: string
+            coverage-threshold:
+                description: The configured coverage threshold for integration tests.
+                required: false
+                default: 80
+                type: number
+            upload-artifacts:
+                description: Whether to upload coverage artifacts or not.
+                required: false
+                default: true
                 type: boolean
+        outputs:
+            coverage-percent:
+                description: The coverage report percentage.
+                value: ${{ jobs.node-checks.outputs.coverage-percent }}
+            build-version:
+                description: The build version from this run.
+                value: ${{ jobs.node-checks.outputs.build-version }}
+
+defaults:
+    run:
+        shell: bash
+
 jobs:
     node-checks:
         runs-on: ubuntu-24.04
         timeout-minutes: 5
+        outputs:
+            coverage-percent: ${{ steps.enforce-coverage.outputs.coverage-percent }}
+            build-version: ${{ steps.output-build-version.outputs.build-version }}
+            artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
         steps:
             - name: Checkout
               id: git-checkout
               timeout-minutes: 1
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-              with:
-                path: "${{ github.workspace }}"
               
             - name: Setup Node and Dependencies
               id: setup-node-deps
               timeout-minutes: 1
-              uses: ./.github/actions/setup-node
+              uses: ./.github/actions/setup-pulsecart
               with:
-                folder: "${{ github.workspace }}"
+                node-version: ${{ inputs.node-version }}
 
-            - name: "${{ inputs.step-title }}"
-              shell: bash
-              working-directory: "${{ github.workspace }}/${{ inputs.folder }}"
+            - name: Run Node Checks
+              id: run-node-cheks
+              timeout-minutes: 1
+              working-directory: ${{ github.workspace }}/${{ inputs.workspace }}
               run: ${{ inputs.command }}
+              
+            - name: Enforce Coverage
+              id: enforce-coverage
+              if: (contains(inputs.command, 'test:unit') || contains(inputs.command, 'test:integration'))
+              timeout-minutes: 1
+              run: |
+                # Get the file path of the coverage summary report
+                JSON_REPORT_FILE_PATH="$(find reports/ -type f -name coverage-summary.json 2>/dev/null | head -1 | grep '.json')";
+
+                # Check if the coverage summary report file exists
+                if [[ ! -f "${JSON_REPORT_FILE_PATH}" ]]; then
+                    echo "Could not locate the coverage report file at: ${JSON_REPORT_FILE_PATH}";
+                    exit 1;
+                fi
+
+                # Extract the coverage
+                COVERAGE_PCT="$(JSON_FILE="${JSON_REPORT_FILE_PATH}" python3 -c '
+                import os, json
+                with open(os.environ["JSON_FILE"]) as f:
+                    d = json.load(f)
+                    print(int(d["total"]["lines"]["pct"]))
+                ')";
+
+                # Ensure the coverage value is valid
+                if [[ -z "${COVERAGE_PCT}" ]];then
+                    echo "Unable to extract the coverage report.";
+                    exit 1;
+                fi
+
+                # Actually enforce the coverage
+                export COV_EXIT_CODE=0
+
+                if [[ ${{ inputs.coverage-threshold }} -gt ${COVERAGE_PCT} ]];then
+                    echo "The current coverage (${COVERAGE_PCT}%) is less than the configured threshold (${{ inputs.coverage-threshold }}%).";
+                    COV_EXIT_CODE=1;
+                fi
+
+                echo "coverage-percent=${COVERAGE_PCT}" >> "$GITHUB_OUTPUT";
+                exit ${COV_EXIT_CODE};
+
+            - name: Output Build Version
+              id: output-build-version
+              timeout-minutes: 1
+              run: echo "build-version=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT";
+
+            - name: Set Artifact Name
+              id: set-artifact-name
+              if: inputs.upload-artifacts == 'true' && (contains(inputs.command, 'test:unit') || contains(inputs.command, 'test:integration'))
+              timeout-minutes: 1
+              run: echo "artifact-name=$(echo '${{ inputs.workspace }}' | sed 's#/#-#g')" >> "$GITHUB_OUTPUT";
+
+            - name: Upload Coverage Reports
+              id: upload-cov-artifacts
+              if: inputs.upload-artifacts == 'true' && (contains(inputs.command, 'test:unit') || contains(inputs.command, 'test:integration'))
+              timeout-minutes: 1
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                name: "${{ steps.set-artifact-name.outputs.artifact-name }}-coverage-report"
+                retention-days: 1
+                path: |
+                  "reports/junit-*.xml"
+                  "reports/coverage/**"

@@ -1,0 +1,66 @@
+name: Setup NodeJS
+
+author: Juan Rodriguez
+
+description: Ensure NodeJS@v26 is installed
+
+inputs:
+  node-version:
+    description: The NodeJS version to use for the checks.
+    required: false
+    default: "24"
+  package-manager:
+    description: The package manager to use. Options include "npm", "yarn" and "pnpm".
+    required: false
+    default: pnpm
+  cache-key-prefix:
+    description: The cache prefix.
+    required: false
+    default: ${{ runner.os }}-node-modules
+  install-command:
+    description: The command to be used with 'package-manager' to install.
+    required: false
+    default: install
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install PNPM
+      id: install-pnpm
+      if: inputs.package-manger == 'pnpm'
+      uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+      
+    - name: Install NodeJS
+      id: install-node
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: NPM Dependencies Caching
+      id: npm-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      with:
+        path: "node_modules"
+        key: "${{ inputs.cache-key-prefix }}-${{ hashFiles('pnpm-lock.yaml') }}"
+
+    - name: Install NPM Dependencies
+      id: install-npm-deps
+      shell: bash
+      run: ${{ inputs.package-manager }} ${{ inputs.install-command }}
+
+    - name: Get Playwright Version
+      id: get-pw-version
+      shell: bash
+      run: echo "playwright-version=$(${{ inputs.package-manager }} list @playwright/test --depth=0 | grep '@playwright/test' | awk -F@ '{print $3}')" >> "$GITHUB_OUTPUT";
+
+    - name: Playwright Browsers Caching
+      id: pw-browsers-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      with:
+        path: "~/.cache/ms-playwright"
+        key: "${{ runner.os }}-playwright-browsers-${{ steps.get-pw-version.outputs.playwright-version }}"
+
+    - name: Install Playwright Browsers
+      id: install-pw-browsers
+      shell: bash
+      run: ${{ inputs.package-manager }} exec playwright install --with-deps chromium firefox webkit

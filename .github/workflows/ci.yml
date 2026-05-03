@@ -1,5 +1,7 @@
 name: Continuous Integration
+
 run-name: Run ${{ github.workflow }} on ${{ github.ref_name }} - ${{ github.action }} by ${{ github.actor }}
+
 on:
     workflow_dispatch:
     push:
@@ -21,14 +23,15 @@ on:
             - apps/web/**
             - packages/domain/**
             - .github/workflows/ci.yml
+
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
-env:
-    WORKING_DIRECTORY: ${{ github.workspace }}
-    POSTGRES_USER: "jarr"
-    POSTGRES_DB: "pulsecart"
-    POSTGRES_PASSWORD: "mypassword2026"
+
+defaults:
+    run:
+        shell: bash
+
 jobs:
     detect-changes:
         runs-on: ubuntu-24.04
@@ -43,14 +46,11 @@ jobs:
               id: git-checkout
               timeout-minutes: 1
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-              with:
-                path: "${{ env.WORKING_DIRECTORY }}"
 
             - name: Detect Changes
               id: detect-changes
               uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
               with:
-                working-directory: "${{ env.WORKING_DIRECTORY }}"
                 filters: |
                   api:
                     - 'apps/api/**'
@@ -73,7 +73,6 @@ jobs:
             - name: Set Any Changes Output
               id: set-changes-output
               timeout-minutes: 1
-              shell: bash
               run: |
                 if [[ "${{ steps.detect-changes.outputs.api }}" == "true" || "${{ steps.detect-changes.outputs.web }}" == "true" || "${{ steps.detect-changes.outputs.domain }}" == "true" ]]; then
                     echo "any=true" >> "$GITHUB_OUTPUT"
@@ -81,130 +80,103 @@ jobs:
                     echo "any=false" >> "$GITHUB_OUTPUT"
                 fi
 
+    resolve-configs:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 1
+        environment: "testing"
+        outputs:
+            node-version: ${{ steps.resolve-conf.outputs.node-version }}
+            coverage-threshold: ${{ steps.resolve-conf.outputs.coverage-threshold }}
+        steps:
+            - name: Resolve configurations for environment.
+              id: resolve-conf
+              timeout-minutes: 1
+              run: |
+                echo "node-version=${{ vars.NODE_VERSION }}" >> "$GITHUB_OUTPUT"
+                echo "coverage-threshold=${{ vars.COVERAGE_THRESHOLD }}" >> "$GITHUB_OUTPUT"
+
     api-linters:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.api == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "apps/api"
-            step-title: "Run API Linters"
             command: pnpm lint
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: apps/api
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: false
 
     api-unit-tests:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.api == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "apps/api"
-            step-title: "Run API Unit Tests"
             command: pnpm test:unit
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: apps/api
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: true
 
     api-integration-tests:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.api == 'true'
-        runs-on: ubuntu-24.04
-        timeout-minutes: 5
-        services:
-            redis:
-                image: redis@sha256:832d7785830f3f4b559300e6191fc914b15642c1935252338825cf4332200148
-                ports:
-                    - "6379:6379"
-                options: >-
-                    --health-cmd "redis-cli ping || exit 1"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 5
-            postgres:
-                image: postgres@sha256:bbb8851608e3ff4901156bf6a4bf90735a9d44ae014c03811bfdb2f9c354b18b
-                ports:
-                    - "5432:5432"
-                env:
-                    POSTGRES_USER: "${{ env.POSTGRES_USER }}"
-                    POSTGRES_PASSWORD: "${{ env.POSTGRES_PASSWORD }}"
-                    POSTGRES_DB: "${{ env.POSTGRES_DB }}"
-                options: >-
-                    --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB || exit 1"
-                    --health-interval 5s
-                    --health-timeout 5s
-                    --health-retries 5
-        steps:
-            - name: Checkout
-              id: git-checkout
-              timeout-minutes: 1
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-              with:
-                path: "${{ github.workspace }}"
-              
-            - name: Setup Node and Dependencies
-              id: setup-node-deps
-              timeout-minutes: 1
-              uses: ./.github/actions/setup-node
-              with:
-                folder: "${{ github.workspace }}"
-
-            - name: Run API Integration Tests
-              shell: bash
-              working-directory: "${{ github.workspace }}/apps/api"
-              env:
-                STORAGE_DRIVER: "postgres"
-                DATABASE_URL: "postgres://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}"
-                REDIS_URL: "redis://localhost:6379"
-              run: pnpm test:integration
-
-            - name: Upload Coverage Reports
-              id: upload-cov-artifacts
-              timeout-minutes: 1
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-              with:
-                name: "api-coverage-reports"
-                retention-days: 1
-                path: |
-                  "reports/junit-*.xml"
-                  "reports/coverage/**"
+        uses: ./.github/workflows/reusable-integration-node-checks.yml
+        with:
+            command: pnpm test:integration
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: apps/api
 
     web-linters:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.web == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "apps/web"
-            step-title: "Run Web Linters"
             command: pnpm lint
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: apps/web
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: false
 
     web-unit-tests:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.web == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "apps/web"
-            step-title: "Run Web Unit Tests"
             command: pnpm test:unit
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: apps/web
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: true
 
     web-e2e-tests:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.web == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "apps/web"
-            step-title: "Run Web E2E Tests"
-            command: |
-                pnpm exec playwright install --with-deps chromium
-                pnpm test:e2e
+            command: pnpm test:e2e
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: apps/web
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: false
 
     domain-linters:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.domain == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "packages/domain"
-            step-title: "Run Domain linters"
             command: pnpm lint
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: ""
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: false
 
     domain-unit-tests:
-        needs: detect-changes
+        needs: [detect-changes, resolve-configs]
         if: needs.detect-changes.outputs.domain == 'true'
         uses: ./.github/workflows/reusable-node-checks.yml
         with:
-            folder: "packages/domain"
-            step-title: "Run Domain Unit Tests"
             command: pnpm test:unit
+            node-version: ${{ needs.resolve-configs.outputs.node-version }}
+            workspace: ""
+            coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
+            upload-artifacts: false
