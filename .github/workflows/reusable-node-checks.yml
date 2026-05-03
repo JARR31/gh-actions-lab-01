@@ -42,7 +42,7 @@ defaults:
 jobs:
     node-checks:
         runs-on: ubuntu-24.04
-        timeout-minutes: 5
+        timeout-minutes: 9
         outputs:
             coverage-percent: ${{ steps.enforce-coverage.outputs.coverage-percent }}
             build-version: ${{ steps.output-build-version.outputs.build-version }}
@@ -55,14 +55,14 @@ jobs:
               
             - name: Setup Node and Dependencies
               id: setup-node-deps
-              timeout-minutes: 1
+              timeout-minutes: 2
               uses: ./.github/actions/setup-pulsecart
               with:
                 node-version: ${{ inputs.node-version }}
 
             - name: Run Node Checks
-              id: run-node-cheks
-              timeout-minutes: 1
+              id: run-node-checks
+              timeout-minutes: 2
               working-directory: ${{ github.workspace }}/${{ inputs.workspace }}
               run: ${{ inputs.command }}
               

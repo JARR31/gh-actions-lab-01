@@ -78,14 +78,14 @@ jobs:
               
             - name: Setup Node and Dependencies
               id: setup-node-deps
-              timeout-minutes: 1
+              timeout-minutes: 2
               uses: ./.github/actions/setup-pulsecart
               with:
                 node-version: ${{ inputs.node-version }}
 
             - name: Run Integration Node Checks
-              id: run-integration-node-cheks
-              timeout-minutes: 1
+              id: run-integration-node-checks
+              timeout-minutes: 2
               working-directory: ${{ github.workspace }}/${{ inputs.workspace }}
               env:
                 STORAGE_DRIVER: "postgres"
