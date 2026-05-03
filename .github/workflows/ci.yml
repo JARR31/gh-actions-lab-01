@@ -105,7 +105,7 @@ jobs:
               id: git-checkout
               timeout-minutes: 1
               uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-              
+
             - name: Setup Node and Dependencies
               id: setup-node-deps
               timeout-minutes: 4
@@ -122,7 +122,7 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: apps/api
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: false
+            upload-artifacts: 'false'
 
     api-unit-tests:
         needs: [detect-changes, resolve-configs, setup-pulsecart]
@@ -133,7 +133,7 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: apps/api
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: true
+            upload-artifacts: 'true'
 
     api-integration-tests:
         needs: [detect-changes, resolve-configs, setup-pulsecart]
@@ -153,7 +153,7 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: apps/web
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: false
+            upload-artifacts: 'false'
 
     web-unit-tests:
         needs: [detect-changes, resolve-configs, setup-pulsecart]
@@ -164,7 +164,7 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: apps/web
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: true
+            upload-artifacts: 'true'
 
     web-e2e-tests:
         needs: [detect-changes, resolve-configs, setup-pulsecart]
@@ -175,7 +175,7 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: apps/web
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: false
+            upload-artifacts: 'false'
 
     domain-linters:
         needs: [detect-changes, resolve-configs, setup-pulsecart]
@@ -186,7 +186,7 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: ""
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: false
+            upload-artifacts: 'false'
 
     domain-unit-tests:
         needs: [detect-changes, resolve-configs, setup-pulsecart]
@@ -197,4 +197,4 @@ jobs:
             node-version: ${{ needs.resolve-configs.outputs.node-version }}
             workspace: ""
             coverage-threshold: ${{ needs.resolve-configs.outputs.coverage-threshold }}
-            upload-artifacts: false
+            upload-artifacts: 'false'
