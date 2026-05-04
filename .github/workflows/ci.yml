@@ -108,6 +108,7 @@ jobs:
               uses: ./.github/actions/setup-pulsecart
               with:
                 node-version: ${{ steps.resolve-conf.outputs.node-version }}
+                install-playwright: "${{ needs.detect-changes.outputs.web == 'true' }}"
 
     api-linters:
         needs: [detect-changes, setup-pulsecart]

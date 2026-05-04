@@ -21,6 +21,10 @@ inputs:
     description: The command to be used with 'package-manager' to install.
     required: false
     default: install
+  install-playwright:
+    description: Whether playwright must be installed or not.
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -51,11 +55,13 @@ runs:
 
     - name: Get Playwright Version
       id: get-pw-version
+      if: inputs.install-playwright == 'true'
       shell: bash
       run: echo "playwright-version=$(${{ inputs.package-manager }} list @playwright/test --depth=0 | grep '@playwright/test' | awk -F@ '{print $3}')" >> "$GITHUB_OUTPUT";
 
     - name: Playwright Browsers Caching
       id: pw-browsers-cache
+      if: inputs.install-playwright == 'true'
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: "~/.cache/ms-playwright"
@@ -63,6 +69,6 @@ runs:
 
     - name: Install Playwright Browsers
       id: install-pw-browsers
-      if: steps.pw-browsers-cache.outputs.cache-hit != 'true'
+      if: ${{ steps.pw-browsers-cache.outputs.cache-hit != 'true' && inputs.install-playwright == 'true' }}
       shell: bash
       run: ${{ inputs.package-manager }} exec playwright install --with-deps chromium firefox webkit
