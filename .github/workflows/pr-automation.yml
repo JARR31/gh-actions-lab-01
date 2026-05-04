@@ -44,7 +44,7 @@ jobs:
                     sys.exit(1)
 
                 if not re.match(PATTERN, PR_TITLE):
-                    print("The PR Titlte does not match the expected pattern: {}".format(PATTERN))
+                    print("The PR Titlte does not match the expected pattern: \"{}\"".format(PATTERN))
                     sys.exit(1)
 
                 print("PR Titlte Validation Passed.")
