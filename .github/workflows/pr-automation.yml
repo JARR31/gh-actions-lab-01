@@ -30,7 +30,7 @@ jobs:
         timeout-minutes: 7
         outputs:
             is-pr-title-ok: "${{ steps.check-title-format.outputs.is-pr-title-ok }}"
-            is-pr-body-ok: "${{ steps.check-title-format.outputs.is-pr-body-ok }}"
+            is-pr-body-ok:  "${{ steps.check-body-format.outputs.is-pr-body-ok }}"
         continue-on-error: true
         steps:
             - name: Check Title Format
@@ -196,7 +196,7 @@ jobs:
                 | Check | Result |
                 |---|---|
                 | Title format | ${{ needs.check-pr-meta.outputs.is-pr-title-ok == 'true' && 'Passed' || 'Failed' }} |
-                | Body format | ${{ needs.check-pr-meta.outputs.is-pr-body-ok == 'true' && 'Passed' || 'Failed' }} |
+                | Body format  | ${{ needs.check-pr-meta.outputs.is-pr-body-ok == 'true' && 'Passed' || 'Failed' }} |
                 | Changed areas | ${{ needs.apply-labels.outputs.changed-areas }} |
                 ");
 
