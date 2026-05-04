@@ -143,6 +143,8 @@ jobs:
                 
             - name: Update PR Labels
               timeout-minutes: 2
+              env:
+                GH_TOKEN: ${{ github.token }}
               run: |
                for area in $(echo "${{ steps.resolve-changed-areas.outputs.changed-areas }}" | tr "," "\n"); do
                     gh pr edit ${{ github.event.pull_request.number }} --add-label "${area}"
