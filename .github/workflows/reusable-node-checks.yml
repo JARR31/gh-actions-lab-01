@@ -59,6 +59,7 @@ jobs:
               uses: ./.github/actions/setup-pulsecart
               with:
                 node-version: ${{ inputs.node-version }}
+                install-playwright: "${{ contains(inputs.command, 'e2e') }}"
 
             - name: Run Node Checks
               id: run-node-checks
