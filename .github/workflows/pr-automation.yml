@@ -1,0 +1,28 @@
+name: "PR Automation"
+
+run-name: "#${{ github.event.number }} | Run ${{ github.workflow }}  - commit: ${{ github.sha }} - @${{ github.actor }}"
+
+on: 
+    pull_request:
+        types:
+            - opened
+            - edited
+        branches:
+            - main
+
+# concurrency:
+
+defaults:
+    run:
+        shell: bash
+
+permissions:
+    contents: read
+
+jobs:
+    check-pr-meta:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        steps:
+            - name: Output event data
+              run: echo "${{ toJson(github.event.pull_request) }}"
