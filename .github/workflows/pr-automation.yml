@@ -7,6 +7,9 @@ on:
         types:
             - opened
             - edited
+            - synchronize
+            - ready_for_review
+            - reopened
         branches:
             - main
 
@@ -22,7 +25,64 @@ permissions:
 jobs:
     check-pr-meta:
         runs-on: ubuntu-24.04
-        timeout-minutes: 5
+        timeout-minutes: 2
         steps:
-            - name: Output event data
-              run: echo "${{ toJson(github.event.pull_request) }}"
+            - name: Check Title Format
+              id: check-title-format
+              timeout-minutes: 1
+              env:
+                PR_TITLE: ${{ github.event.pull_request.title }}
+              run: |
+                python3 -c '
+                import os, re, sys
+
+                PR_TITLE = (os.getenv("PR_TITLE") or "").strip()
+                PATTERN  = r"^(feat|fix|docs|test|refactor|ci|chore|build|perf|security)(\([a-z0-9-]+\))?: .+"
+
+                if PR_TITLE == "":
+                    print("The PR Title is empty.")
+                    sys.exit(1)
+
+                if not re.match(PATTERN, PR_TITLE):
+                    print("The PR Titlte does not match the expected pattern: {}".format(PATTERN))
+                    sys.exit(1)
+
+                print("PR Titlte Validation Passed.")
+                sys.exit(0)
+                ';
+
+            - name: Check Body Format
+              id: check-body-format
+              timeout-minutes: 1
+              env:
+                PR_BODY: ${{ github.event.pull_request.body }}
+              run: |
+                python3 -c '
+                import os, re, sys
+
+                SECTIONS = [
+                    "## Problem Statement",
+                    "## Test Evidence",
+                    "## Rollback Notes",
+                ]
+
+                PR_BODY = (os.getenv("PR_BODY") or "").strip()
+
+                if PR_BODY == "":
+                    print("The PR Body is empty.")
+                    sys.exit(1)
+
+                body_list = PR_BODY.splitlines()
+                errors = ""
+
+                for section in SECTIONS:
+                    if section not in body_list:
+                        errors += "- Missing \"{}\" in PR Body.\n".format(section)
+
+                if len(errors) == 0:
+                    print("PR Body Validation Passed.")
+                    sys.exit(0)
+
+                print("PR Body Validation Failed:\n{}".format(errors))
+                sys.exit(1)
+                ';
