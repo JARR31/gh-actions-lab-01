@@ -41,6 +41,9 @@ defaults:
     run:
         shell: bash
 
+permissions:
+    contents: read
+    
 jobs:
     node-checks:
         runs-on: ubuntu-24.04
