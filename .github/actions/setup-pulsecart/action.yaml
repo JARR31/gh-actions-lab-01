@@ -57,7 +57,7 @@ runs:
       id: get-pw-version
       if: ${{ inputs.install-playwright == 'true' }}
       shell: bash
-      run: echo "playwright-version=$(${{ inputs.package-manager }} list @playwright/test --depth=0 | grep '@playwright/test' | awk -F@ '{print $3}')" >> "$GITHUB_OUTPUT";
+      run: echo "playwright-version=$(${{ inputs.package-manager }} list @playwright/test --depth=0 | grep '@playwright/test' | grep -o '[0-9].\+' | tr '.' '-')" >> "$GITHUB_OUTPUT";
 
     - name: Playwright Browsers Caching
       id: pw-browsers-cache
@@ -71,4 +71,4 @@ runs:
       id: install-pw-browsers
       if: ${{ inputs.install-playwright == 'true' && steps.pw-browsers-cache.outputs.cache-hit != 'true' }}
       shell: bash
-      run: ${{ inputs.package-manager }} exec playwright install --with-deps chromium firefox webkit
+      run: ${{ inputs.package-manager }} exec playwright install --with-deps chromium
