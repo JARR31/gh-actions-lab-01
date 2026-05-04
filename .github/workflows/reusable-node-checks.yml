@@ -126,5 +126,5 @@ jobs:
                 name: "${{ steps.set-artifact-name.outputs.artifact-name }}-coverage-report"
                 retention-days: 1
                 path: |
-                  "reports/junit-*.xml"
-                  "reports/coverage/**"
+                  reports/junit-*.xml
+                  reports/coverage/**
