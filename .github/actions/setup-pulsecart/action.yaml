@@ -69,6 +69,6 @@ runs:
 
     - name: Install Playwright Browsers
       id: install-pw-browsers
-      if: ${{ steps.pw-browsers-cache.outputs.cache-hit != 'true' && inputs.install-playwright == 'true' }}
+      if: ${{ inputs.install-playwright == 'true' && steps.pw-browsers-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: ${{ inputs.package-manager }} exec playwright install --with-deps chromium firefox webkit
