@@ -13,7 +13,9 @@ on:
         branches:
             - main
 
-# concurrency:
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.repository }}"
+    cancel-in-progress: true
 
 defaults:
     run:
