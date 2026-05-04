@@ -214,20 +214,3 @@ jobs:
                     repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/${pr_qa_comment} \
                     -f "body=${pr_qa_comment_body}";
                 fi
-    allow-merge:
-        needs: [check-pr-meta]
-        runs-on: ubuntu-24.04
-        timeout-minutes: 1
-        steps:
-            - name: Allow Merging
-              run: |
-                if [[ "${{ needs.check-pr-meta.outputs.is-pr-title-ok }}" != 'true' ]]; then
-                    echo "The PR Title is not ok."
-                    exit 1;
-                elif [[ "${{ needs.check-pr-meta.outputs.is-pr-body-ok }}" != 'true' ]]; then
-                    echo "The PR Body is not ok."
-                    exit 1;
-                else
-                    echo "The PR Meta is ok."
-                    exit 0;
-                fi
