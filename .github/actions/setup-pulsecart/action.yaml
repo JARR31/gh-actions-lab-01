@@ -55,13 +55,13 @@ runs:
 
     - name: Get Playwright Version
       id: get-pw-version
-      if: inputs.install-playwright == 'true'
+      if: ${{ inputs.install-playwright == 'true' }}
       shell: bash
       run: echo "playwright-version=$(${{ inputs.package-manager }} list @playwright/test --depth=0 | grep '@playwright/test' | awk -F@ '{print $3}')" >> "$GITHUB_OUTPUT";
 
     - name: Playwright Browsers Caching
       id: pw-browsers-cache
-      if: inputs.install-playwright == 'true'
+      if: ${{ inputs.install-playwright == 'true' }}
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
         path: "~/.cache/ms-playwright"
