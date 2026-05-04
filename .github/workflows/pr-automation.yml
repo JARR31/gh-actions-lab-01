@@ -49,7 +49,7 @@ jobs:
                     is_pr_title_ok = "false"
 
                 if PR_TITLE != "" and not re.match(PATTERN, PR_TITLE):
-                    errors += "- The PR Titlte does not match the expected pattern: \"{}\".\n".format(PATTERN))
+                    errors += "- The PR Titlte does not match the expected pattern: \"{}\".\n".format(PATTERN)
                     is_pr_title_ok = "false"
 
                 with open(os.getenv("GITHUB_OUTPUT"), "a") as gh_out:
