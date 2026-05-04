@@ -99,7 +99,7 @@ jobs:
                     is_pr_body_ok = "false"
 
                 with open(os.getenv("GITHUB_OUTPUT"), "a") as gh_out:
-                    gh_out.write("is-pr-body-ok={}\n".format(is_pr_title_ok))
+                    gh_out.write("is-pr-body-ok={}\n".format(is_pr_body_ok))
 
                 if is_pr_body_ok == "true":
                     print("PR Body Validation Passed.")
