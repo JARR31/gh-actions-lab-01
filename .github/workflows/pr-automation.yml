@@ -213,6 +213,6 @@ jobs:
                 else
                     # Update
                     gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
-                    repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/${pr_qa_comment} \
+                    repos/${{ github.repository }}/issues/comments/${pr_qa_comment} \
                     -f "body=${pr_qa_comment_body}";
                 fi
