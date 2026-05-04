@@ -26,6 +26,9 @@ jobs:
     check-pr-meta:
         runs-on: ubuntu-24.04
         timeout-minutes: 7
+        outputs:
+            is-pr-title-ok: "${{ steps.check-title-format.outputs.is-pr-title-ok }}"
+            is-pr-body-ok: "${{ steps.check-title-format.outputs.is-pr-body-ok }}"
         steps:
             - name: Check Title Format
               id: check-title-format
@@ -38,17 +41,26 @@ jobs:
 
                 PR_TITLE = (os.getenv("PR_TITLE") or "").strip()
                 PATTERN  = r"^(feat|fix|docs|test|refactor|ci|chore|build|perf|security)(\([a-z0-9-]+\))?: .+"
+                is_pr_title_ok = "true"
+                errors = ""
 
                 if PR_TITLE == "":
-                    print("The PR Title is empty.")
-                    sys.exit(1)
+                    errors += "- The PR Title is empty.\n"
+                    is_pr_title_ok = "false"
 
-                if not re.match(PATTERN, PR_TITLE):
-                    print("The PR Titlte does not match the expected pattern: \"{}\"".format(PATTERN))
-                    sys.exit(1)
+                if PR_TITLE != "" and not re.match(PATTERN, PR_TITLE):
+                    errors += "- The PR Titlte does not match the expected pattern: \"{}\".\n".format(PATTERN))
+                    is_pr_title_ok = "false"
 
-                print("PR Titlte Validation Passed.")
-                sys.exit(0)
+                with open(os.getenv("GITHUB_OUTPUT"), "a") as gh_out:
+                    gh_out.write("is-pr-title-ok={}\n".format(is_pr_title_ok))
+
+                if is_pr_title_ok == "true":
+                    print("PR Title Validation Passed.")
+                    sys.exit(0)
+                else:
+                    print("PR Title Validation Failed:\n{}".format(errors))
+                    sys.exit(1)
                 ';
 
             - name: Check Body Format
@@ -67,10 +79,11 @@ jobs:
                 ]
 
                 PR_BODY = (os.getenv("PR_BODY") or "").strip()
+                is_pr_body_ok = "true"
 
                 if PR_BODY == "":
                     print("The PR Body is empty.")
-                    sys.exit(1)
+                    is_pr_body_ok = "false"
 
                 body_list = PR_BODY.splitlines()
                 errors = ""
@@ -79,16 +92,25 @@ jobs:
                     if section not in body_list:
                         errors += "- Missing \"{}\" in PR Body.\n".format(section)
 
-                if len(errors) == 0:
+                if len(errors) > 0:
+                    is_pr_body_ok = "false"
+
+                with open(os.getenv("GITHUB_OUTPUT"), "a") as gh_out:
+                    gh_out.write("is-pr-body-ok={}\n".format(is_pr_title_ok))
+
+                if is_pr_body_ok == "true":
                     print("PR Body Validation Passed.")
                     sys.exit(0)
-
-                print("PR Body Validation Failed:\n{}".format(errors))
-                sys.exit(1)
+                else:
+                    print("PR Body Validation Failed:\n{}".format(errors))
+                    sys.exit(1)
                 ';
-    auto-label:
+    
+    apply-labels:
         runs-on: ubuntu-24.04
         timeout-minutes: 5
+        outputs:
+            changed-areas: ${{ steps.resolve-changed-areas.outputs.changed-areas }}
         permissions:
             contents: read
             pull-requests: write
@@ -147,5 +169,45 @@ jobs:
                 GH_TOKEN: ${{ github.token }}
               run: |
                 for area in $(echo "${{ steps.resolve-changed-areas.outputs.changed-areas }}" | tr "," "\n"); do
+                    # TODO: Ensure we can create labels if missing to avoid errors.
                     gh pr edit ${{ github.event.pull_request.number }} --add-label "${area}"
                 done
+
+    update-report-comment:
+        needs: [check-pr-meta, apply-labels]
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Update PR Report Comment
+              id: update-pr-report
+              timeout-minutes: 2
+              env:
+                GH_TOKEN: ${{ github.token }}
+              run: |
+                pr_qa_comment_body=$(echo "## PR Quality Report
+                | Check | Result |
+                |---|---|
+                | Title format | ${{ needs.check-pr-meta.outputs.is-pr-title-ok == 'true' && 'Passed' || 'Failed' }} |
+                | Body format | ${{ needs.check-pr-meta.outputs.is-pr-body-ok == 'true' && 'Passed' || 'Failed' }} |
+                | Changed areas | ${{ needs.apply-labels.outputs.changed-areas }} |
+                ");
+
+                pr_qa_comment="$(
+                gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
+                repos/${{ github.repository_owner }}/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+                --jq '.[] | {id, body} | select(.body | contains("PR Quality Report")) | .id')";
+
+                if [[ -z "${pr_qa_comment}" ]]; then
+                    # Create
+                    gh api --method POST -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
+                    repos/${{ github.repository_owner }}/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+                    -f "body=${pr_qa_comment_body}";
+                else
+                    # Update
+                    gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
+                    repos/${{ github.repository_owner }}/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments/${pr_qa_comment} \
+                    -f "body=${pr_qa_comment_body}";
+                fi
