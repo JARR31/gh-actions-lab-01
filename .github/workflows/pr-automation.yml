@@ -1,6 +1,6 @@
 name: "PR Automation"
 
-run-name: "#${{ github.event.number }} | Run ${{ github.workflow }}  - commit: ${{ github.sha }} - @${{ github.actor }}"
+run-name: "#${{ github.event.pull_request.number }} | Run ${{ github.workflow }}  - commit: ${{ github.sha }} - @${{ github.actor }}"
 
 on: 
     pull_request:
@@ -25,7 +25,7 @@ permissions:
 jobs:
     check-pr-meta:
         runs-on: ubuntu-24.04
-        timeout-minutes: 2
+        timeout-minutes: 7
         steps:
             - name: Check Title Format
               id: check-title-format
@@ -86,3 +86,64 @@ jobs:
                 print("PR Body Validation Failed:\n{}".format(errors))
                 sys.exit(1)
                 ';
+    auto-label:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+            - name: Detect Changes
+              id: detect-changes
+              timeout-minutes: 1
+              uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+              with:
+                filters: |
+                  api:
+                    - 'apps/api/**'
+                  web:
+                    - 'apps/web/**'
+                  domain:
+                    - 'packages/domain/**'
+                    - 'package.json'
+                    - 'pnpm-lock.yaml'
+                  cicd:
+                    - '.github/**'
+
+            - name: Resolve Changed Areas
+              id: resolve-changed-areas
+              timeout-minutes: 1
+              run: |
+                AREAS='{
+                    "api": "${{ steps.detect-changes.outputs.api }}",
+                    "web": "${{ steps.detect-changes.outputs.web }}",
+                    "domain": "${{ steps.detect-changes.outputs.domain }}",
+                    "cicd": "${{ steps.detect-changes.outputs.cicd }}"
+                }';
+                
+                CHANGED="$(AREAS="${AREAS}" python3 -c '
+                import os, sys, json
+
+                AREAS = os.getenv("AREAS")
+
+                changed_areas = []
+                for area, changed in json.loads(AREAS).items():
+                    if changed == "true":
+                        changed_areas.append("area:{}".format(area))
+
+                print(",".join(changed_areas))
+                ')";
+
+                echo "changed-areas=${CHANGED}" >> "$GITHUB_OUTPUT"
+                
+            - name: Update PR Labels
+              timeout-minutes: 2
+              run: |
+               for area in $(echo "${{ steps.resolve-changed-areas.outputs.changed-areas }}" | tr "," "\n"); do
+                    gh pr edit ${{ github.event.pull_request.number }} --add-label "${area}"
+               done
