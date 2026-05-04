@@ -43,7 +43,8 @@ jobs:
             api: "${{ steps.detect-changes.outputs.api }}"
             web: "${{ steps.detect-changes.outputs.web }}"
             domain: "${{ steps.detect-changes.outputs.domain }}"
-            any: "${{ steps.set-changes-output.outputs.any }}"
+            cicd: "${{ steps.detect-changes.outputs.cicd }}"
+            any: "${{ steps.detect-changes.outputs.any }}"
         steps:
             - name: Checkout
               id: git-checkout
@@ -57,17 +58,17 @@ jobs:
                 filters: |
                   api:
                     - 'apps/api/**'
-                    - 'packages/domain/**'
-                    - 'package.json'
-                    - 'pnpm-lock.yaml'
-                    - '.github/workflows/ci.yml'
                   web:
                     - 'apps/web/**'
+                  domain:
                     - 'packages/domain/**'
                     - 'package.json'
                     - 'pnpm-lock.yaml'
-                    - '.github/workflows/ci.yml'
-                  domain:
+                  cicd:
+                    - '.github/**'
+                  any:
+                    - 'apps/api/**'
+                    - 'apps/web/**'
                     - 'packages/domain/**'
                     - 'package.json'
                     - 'pnpm-lock.yaml'

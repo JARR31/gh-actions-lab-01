@@ -29,6 +29,7 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/packages/domain/package.json ./packages/domain/package.json
 COPY --from=build /app/packages/domain/dist ./packages/domain/dist
 
+# adding a comment to test 
 EXPOSE 3000
 
 CMD ["node", "apps/api/dist/index.js"]

@@ -1,16 +1,21 @@
 name: "PR Automation"
 
-run-name: "#${{ github.event.number }} | Run ${{ github.workflow }}  - commit: ${{ github.sha }} - @${{ github.actor }}"
+run-name: "#${{ github.event.pull_request.number }} | Run ${{ github.workflow }}  - commit: ${{ github.sha }} - @${{ github.actor }}"
 
 on: 
     pull_request:
         types:
             - opened
             - edited
+            - synchronize
+            - ready_for_review
+            - reopened
         branches:
             - main
 
-# concurrency:
+concurrency:
+    group: "${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.repository }}"
+    cancel-in-progress: true
 
 defaults:
     run:
@@ -22,7 +27,192 @@ permissions:
 jobs:
     check-pr-meta:
         runs-on: ubuntu-24.04
-        timeout-minutes: 5
+        timeout-minutes: 7
+        outputs:
+            is-pr-title-ok: "${{ steps.check-title-format.outputs.is-pr-title-ok }}"
+            is-pr-body-ok:  "${{ steps.check-body-format.outputs.is-pr-body-ok }}"
+        continue-on-error: true
         steps:
-            - name: Output event data
-              run: echo "${{ toJson(github.event.pull_request) }}"
+            - name: Check Title Format
+              id: check-title-format
+              timeout-minutes: 1
+              env:
+                PR_TITLE: ${{ github.event.pull_request.title }}
+              run: |
+                python3 -c '
+                import os, re, sys
+
+                PR_TITLE = (os.getenv("PR_TITLE") or "").strip()
+                PATTERN  = r"^(feat|fix|docs|test|refactor|ci|chore|build|perf|security)(\([a-z0-9-]+\))?: .+"
+                is_pr_title_ok = "true"
+                errors = ""
+
+                if PR_TITLE == "":
+                    errors += "- The PR Title is empty.\n"
+                    is_pr_title_ok = "false"
+
+                if PR_TITLE != "" and not re.match(PATTERN, PR_TITLE):
+                    errors += "- The PR Titlte does not match the expected pattern: \"{}\".\n".format(PATTERN)
+                    is_pr_title_ok = "false"
+
+                with open(os.getenv("GITHUB_OUTPUT"), "a") as gh_out:
+                    gh_out.write("is-pr-title-ok={}\n".format(is_pr_title_ok))
+
+                if is_pr_title_ok == "true":
+                    print("PR Title Validation Passed.")
+                    sys.exit(0)
+                else:
+                    print("PR Title Validation Failed:\n{}".format(errors))
+                    sys.exit(1)
+                ';
+
+            - name: Check Body Format
+              id: check-body-format
+              timeout-minutes: 1
+              env:
+                PR_BODY: ${{ github.event.pull_request.body }}
+              run: |
+                python3 -c '
+                import os, re, sys
+
+                SECTIONS = [
+                    "## Problem Statement",
+                    "## Test Evidence",
+                    "## Rollback Notes",
+                ]
+
+                PR_BODY = (os.getenv("PR_BODY") or "").strip()
+                is_pr_body_ok = "true"
+
+                if PR_BODY == "":
+                    print("The PR Body is empty.")
+                    is_pr_body_ok = "false"
+
+                body_list = PR_BODY.splitlines()
+                errors = ""
+
+                for section in SECTIONS:
+                    if section not in body_list:
+                        errors += "- Missing \"{}\" in PR Body.\n".format(section)
+
+                if len(errors) > 0:
+                    is_pr_body_ok = "false"
+
+                with open(os.getenv("GITHUB_OUTPUT"), "a") as gh_out:
+                    gh_out.write("is-pr-body-ok={}\n".format(is_pr_body_ok))
+
+                if is_pr_body_ok == "true":
+                    print("PR Body Validation Passed.")
+                    sys.exit(0)
+                else:
+                    print("PR Body Validation Failed:\n{}".format(errors))
+                    sys.exit(1)
+                ';
+    
+    apply-labels:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 5
+        outputs:
+            changed-areas: ${{ steps.resolve-changed-areas.outputs.changed-areas }}
+        permissions:
+            contents: read
+            pull-requests: write
+        continue-on-error: true
+        steps:
+            - name: Checkout
+              id: git-checkout
+              timeout-minutes: 1
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+            - name: Detect Changes
+              id: detect-changes
+              timeout-minutes: 1
+              uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+              with:
+                filters: |
+                  api:
+                    - 'apps/api/**'
+                  web:
+                    - 'apps/web/**'
+                  domain:
+                    - 'packages/domain/**'
+                    - 'package.json'
+                    - 'pnpm-lock.yaml'
+                  cicd:
+                    - '.github/**'
+
+            - name: Resolve Changed Areas
+              id: resolve-changed-areas
+              timeout-minutes: 1
+              run: |
+                AREAS='{
+                    "api": "${{ steps.detect-changes.outputs.api }}",
+                    "web": "${{ steps.detect-changes.outputs.web }}",
+                    "domain": "${{ steps.detect-changes.outputs.domain }}",
+                    "cicd": "${{ steps.detect-changes.outputs.cicd }}"
+                }';
+                
+                CHANGED="$(AREAS="${AREAS}" python3 -c '
+                import os, sys, json
+
+                AREAS = os.getenv("AREAS")
+
+                changed_areas = []
+                for area, changed in json.loads(AREAS).items():
+                    if changed == "true":
+                        changed_areas.append("area:{}".format(area))
+
+                print(",".join(changed_areas))
+                ')";
+
+                echo "changed-areas=${CHANGED}" >> "$GITHUB_OUTPUT"
+                
+            - name: Update PR Labels
+              timeout-minutes: 2
+              env:
+                GH_TOKEN: ${{ github.token }}
+              run: |
+                for area in $(echo "${{ steps.resolve-changed-areas.outputs.changed-areas }}" | tr "," "\n"); do
+                    # TODO: Ensure we can create labels if missing to avoid errors.
+                    gh pr edit ${{ github.event.pull_request.number }} --add-label "${area}"
+                done
+
+    update-report-comment:
+        needs: [check-pr-meta, apply-labels]
+        runs-on: ubuntu-24.04
+        timeout-minutes: 3
+        permissions:
+            contents: read
+            pull-requests: write
+        continue-on-error: true
+        steps:
+            - name: Update PR Report Comment
+              id: update-pr-report
+              timeout-minutes: 3
+              env:
+                GH_TOKEN: ${{ github.token }}
+              run: |
+                pr_qa_comment_body=$(echo "## PR Quality Report
+                | Check | Result |
+                |---|---|
+                | Title format | ${{ needs.check-pr-meta.outputs.is-pr-title-ok == 'true' && 'Passed' || 'Failed' }} |
+                | Body format  | ${{ needs.check-pr-meta.outputs.is-pr-body-ok == 'true' && 'Passed' || 'Failed' }} |
+                | Changed areas | ${{ needs.apply-labels.outputs.changed-areas }} |
+                ");
+
+                pr_qa_comment="$(
+                gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
+                repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+                --jq '.[] | {id, body} | select(.body | contains("PR Quality Report")) | .id')";
+
+                if [[ -z "${pr_qa_comment}" ]]; then
+                    # Create
+                    gh api --method POST -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
+                    repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+                    -f "body=${pr_qa_comment_body}";
+                else
+                    # Update
+                    gh api --method PATCH -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2026-03-10" \
+                    repos/${{ github.repository }}/issues/comments/${pr_qa_comment} \
+                    -f "body=${pr_qa_comment_body}";
+                fi
